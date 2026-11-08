@@ -104,6 +104,25 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
+      # Build with the toolchain the commit's own CI uses, so a GCC bump in
+      # kth reaches the image without anyone editing this repo. kth names it
+      # in ci_utils/.github/matrix.json; the digest is resolved now and
+      # recorded in the image. Without that file, the TOOLCHAIN default in
+      # kth/source.Dockerfile applies.
+      - id: toolchain
+        run: |
+          matrix=kth-src/ci_utils/.github/matrix.json
+          image=$(jq -r '[.config[] | select(.compiler == "GCC")][0] | "kthnode/gcc\(.version)\(.docker_suffix)"' \
+            "$matrix" 2>/dev/null || true)
+          if [[ "$image" != kthnode/gcc* ]]; then
+            echo "No GCC toolchain in ${matrix}; using the Dockerfile default."
+            exit 0
+          fi
+          digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -r .digest)
+          echo "Toolchain from the commit: ${image}@${digest}"
+          echo "arg=TOOLCHAIN=${image}@${digest}" >> "$GITHUB_OUTPUT"
+          echo "label=org.opencontainers.image.base.name=${image}@${digest}" >> "$GITHUB_OUTPUT"
+
       - name: Build node image
         uses: docker/build-push-action@v7
         with:
@@ -113,11 +132,13 @@ jobs:
           push: false
           build-args: |
             KNUTH_VERSION=${{ steps.meta.outputs.version }}
+            ${{ steps.toolchain.outputs.arg }}
           tags: ${{ steps.meta.outputs.list }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ inputs.repository }}
             org.opencontainers.image.version=${{ steps.meta.outputs.version }}
             org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            ${{ steps.toolchain.outputs.label }}
 
       - name: Check node version before publishing
         env:
