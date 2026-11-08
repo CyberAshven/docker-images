@@ -11,7 +11,9 @@
 # Pinned by digest so a future `:latest` retag of the toolchain image
 # doesn't silently change the binaries we produce. Bump deliberately when
 # the toolchain moves (GCC bump, base distro bump, ...).
-ARG TOOLCHAIN=kthnode/gcc15-ubuntu24.04@sha256:4988fdeb3654c2b5ea591ffa4454f67e1a631549449c62e35060ba69da79eb67
+# kth refuses GCC older than 16.2 (k-nuth/kth#865), so this is the GCC 16.2.0
+# toolchain image.
+ARG TOOLCHAIN=kthnode/gcc16-ubuntu24.04@sha256:cde0d8a8b911ba290e4019fa4fac81723c7cae93cd864e509fd93a7c05d25dfe
 ARG RUNTIME=ubuntu:24.04
 
 FROM ${TOOLCHAIN} AS build
@@ -22,8 +24,9 @@ ARG CURRENCY=BCH
 
 RUN test -n "${KNUTH_VERSION}" || { echo "KNUTH_VERSION build-arg is required"; exit 1; }
 
-# kthbuild is required to load the kth Conan recipe.
-RUN pip install --no-cache-dir --upgrade "kthbuild>=4,<5"
+# kthbuild is required to load the kth Conan recipe. Conan is upgraded the way
+# kth's own CI does it: its openssl recipe requires Conan 2.25 or newer.
+RUN pip install --no-cache-dir --upgrade "conan>=2.25,<3" "kthbuild>=4,<5"
 
 RUN conan profile detect --force \
  && conan remote add kth https://packages.kth.cash/api/ --force \
@@ -35,6 +38,8 @@ RUN conan profile detect --force \
       -o "utxoz/*:with_tests=False" \
       -o "utxoz/*:with_benchmarks=False" \
       -o "utxoz/*:with_large_benchmarks=False" \
+      -o "boost/*:without_cobalt=True" \
+      -o "boost/*:without_stacktrace_backtrace=True" \
       -s compiler.cppstd=23
 
 
