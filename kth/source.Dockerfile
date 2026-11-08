@@ -12,9 +12,11 @@
 #
 #   docker build -f kth/source.Dockerfile --build-arg KNUTH_VERSION=1.5.2-commit.local -t kth ../kth
 
-# kth requires GCC 16.2 or later from k-nuth/kth#865 on. This digest is the
-# gcc16-ubuntu24.04 image built with GCC 16.2.0, pinned for the same reason as
-# kth/Dockerfile's toolchain. Bump deliberately when the toolchain moves.
+# The workflow passes the toolchain the commit's own CI names
+# (ci_utils/.github/matrix.json), resolved to its digest at build time, so a
+# GCC bump in kth needs no edit here. This default applies only without that
+# file: kth requires GCC 16.2 or later from k-nuth/kth#865 on, and this digest
+# is the gcc16-ubuntu24.04 image built with GCC 16.2.0.
 ARG TOOLCHAIN=kthnode/gcc16-ubuntu24.04@sha256:cde0d8a8b911ba290e4019fa4fac81723c7cae93cd864e509fd93a7c05d25dfe
 ARG RUNTIME=ubuntu:24.04
 
