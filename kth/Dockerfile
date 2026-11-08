@@ -9,10 +9,12 @@
 # is compiled here.
 
 # Pinned by digest so a future `:latest` retag of the toolchain image
-# doesn't silently change the binaries we produce. Bump deliberately when
-# the toolchain moves (GCC bump, base distro bump, ...).
-# kth refuses GCC older than 16.2 (k-nuth/kth#865), so this is the GCC 16.2.0
-# toolchain image.
+# doesn't silently change the binaries we produce. The publish workflow
+# passes the toolchain kth's own CI names for the release being built
+# (ci_utils/.github/matrix.json), resolved to its digest at build time, so a
+# GCC bump in kth needs no edit here. This default applies only without that
+# file. kth refuses GCC older than 16.2 (k-nuth/kth#865), so it is the GCC
+# 16.2.0 toolchain image.
 ARG TOOLCHAIN=kthnode/gcc16-ubuntu24.04@sha256:cde0d8a8b911ba290e4019fa4fac81723c7cae93cd864e509fd93a7c05d25dfe
 ARG RUNTIME=ubuntu:24.04
 
