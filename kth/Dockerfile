@@ -53,9 +53,10 @@ LABEL org.opencontainers.image.title="Knuth (kth) node" \
       org.opencontainers.image.url="https://kth.cash" \
       org.opencontainers.image.licenses="MIT"
 
-# The binary is compiled with GCC 15; ship its matching C++ runtime so the image
-# does not depend on the base distro's (older) libstdc++ / libgcc ABI. The CA
-# bundle is copied too, so the runtime stage needs no package manager at all.
+# The binary is compiled with the toolchain image's GCC; ship its matching C++
+# runtime so the image does not depend on the base distro's (older) libstdc++ /
+# libgcc ABI. The CA bundle is copied too, so the runtime stage needs no package
+# manager at all.
 COPY --from=build /usr/local/lib64/libstdc++.so.6* /opt/kth/lib/
 COPY --from=build /usr/local/lib64/libgcc_s.so.1*  /opt/kth/lib/
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
