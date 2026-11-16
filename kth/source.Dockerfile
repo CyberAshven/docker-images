@@ -10,19 +10,18 @@
 # when one exists for this profile; anything missing is compiled here. The
 # runtime stage is the same as kth/Dockerfile's.
 #
-#   docker build -f kth/source.Dockerfile --build-arg KNUTH_VERSION=1.5.2-commit.local -t kth ../kth
+#   docker build --platform linux/amd64 -f kth/source.Dockerfile \
+#     --build-arg KNUTH_VERSION=0.0.0-dev.local -t local/kth:dev ../kth
 
-# The workflow passes the toolchain the commit's own CI names
-# (ci_utils/.github/matrix.json), resolved to its digest at build time, so a
-# GCC bump in kth needs no edit here. This default applies only without that
-# file: kth requires GCC 16.2 or later from k-nuth/kth#865 on, and this digest
-# is the gcc16-ubuntu24.04 image built with GCC 16.2.0.
+# Local builds target Linux x86_64, matching the checkout's linux-ci-cd profile.
+# Pin the toolchain so rebuilding does not silently pick a different compiler.
+# Override TOOLCHAIN explicitly when the source requires a newer compiler.
 ARG TOOLCHAIN=kthnode/gcc16-ubuntu24.04@sha256:cde0d8a8b911ba290e4019fa4fac81723c7cae93cd864e509fd93a7c05d25dfe
 ARG RUNTIME=ubuntu:24.04
 
 FROM ${TOOLCHAIN} AS build
 
-# Version the node reports, without the leading "v" (e.g. 1.5.2-commit.30d8617e).
+# Development version reported by the node (e.g. 0.0.0-dev.local).
 ARG KNUTH_VERSION
 ARG CURRENCY=BCH
 
@@ -47,10 +46,11 @@ RUN conan profile detect --force \
       --lockfile=conan.lock --lockfile-partial \
       --output-folder=build --build=missing \
       -pr:b linux-ci-cd -pr:h linux-ci-cd \
-      -o march_id=ZLm9Pjh \
-      -o "currency=${CURRENCY}" \
-      -o rpc=True \
-      -o tests=False \
+      -o '&:march_id=ZLm9Pjh' \
+      -o "&:currency=${CURRENCY}" \
+      -o '&:rpc=jsonrpc' \
+      -o '&:tests=False' \
+      -o '&:consensus=False' \
       -o "utxoz/*:with_tests=False" \
       -o "utxoz/*:with_benchmarks=False" \
       -o "utxoz/*:with_large_benchmarks=False" \
@@ -58,11 +58,11 @@ RUN conan profile detect --force \
  && cmake --build --preset conan-release -j"$(nproc)" --target node-exe
 
 
-# Keep this stage the same as kth/Dockerfile's runtime stage.
+# Use the release image's runtime layout, with development image labels.
 FROM ${RUNTIME} AS runtime
 
-LABEL org.opencontainers.image.title="Knuth (kth) node" \
-      org.opencontainers.image.description="Knuth Bitcoin Cash full node" \
+LABEL org.opencontainers.image.title="Knuth (kth) development node" \
+      org.opencontainers.image.description="Local Knuth development build from source" \
       org.opencontainers.image.source="https://github.com/k-nuth/kth" \
       org.opencontainers.image.url="https://kth.cash" \
       org.opencontainers.image.licenses="MIT"

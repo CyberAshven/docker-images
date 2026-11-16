@@ -3,3 +3,4 @@
 # arg), and a build tree from an earlier local build would mix into this one.
 .git
 build
+CMakeUserPresets.json
